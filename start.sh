@@ -74,13 +74,27 @@ if [[ ! -d "${VENV_DIR}" ]]; then
   python3 -m venv "${VENV_DIR}"
   changed_flag=1
 fi
+echo "[*] Установка/обновление python-зависимостей (APT + system-site-packages)..."
+apt-get install -y --no-install-recommends \
+  python3-bluezero python3-dbus python3-gi python3-gi-cairo libglib2.0-bin
 
-# Обновляем pip/setuptools/wheel и ставим/обновляем bluezero
-echo "[*] Установка/обновление python-зависимостей..."
-"${VENV_DIR}/bin/pip" install --upgrade pip setuptools wheel >/dev/null
-# pin можно не ставить; при желании зафиксируй версию:
-# "${VENV_DIR}/bin/pip" install bluezero==0.8.0
-"${VENV_DIR}/bin/pip" install bluezero >/dev/null
+# Создаём venv с доступом к системным пакетам (важно!)
+if [[ ! -d "${VENV_DIR}" ]]; then
+  echo "  - Создание venv с system-site-packages..."
+  python3 -m venv --system-site-packages "${VENV_DIR}"
+  changed_flag=1
+else
+  # Если venv ранее делался без system-site-packages — пересоздадим
+  if ! "${VENV_DIR}/bin/python" -c "import sys; print(any('site-packages' in p and 'dist-packages' in p for p in sys.path))"; then
+    echo "  - Пересоздание venv с system-site-packages..."
+    rm -rf "${VENV_DIR}"
+    python3 -m venv --system-site-packages "${VENV_DIR}"
+    changed_flag=1
+  fi
+fi
+
+# pip только обновим, пакеты через pip не ставим
+"${VENV_DIR}/bin/pip" install --upgrade pip wheel setuptools >/dev/null 2>&1 || true
 
 # Копируем приложение, если изменилось (по хэшу)
 echo "[*] Обновление приложения..."
