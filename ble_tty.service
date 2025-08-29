@@ -5,7 +5,7 @@ Requires=bluetooth.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/env python3 /opt/ble-tty/ble_uart_shell.py
+ExecStart=/usr/bin/env python3 /opt/ble-tty/ble_tty.py
 Restart=on-failure
 User=root
 Environment=PYTHONUNBUFFERED=1

@@ -5,7 +5,7 @@ set -euo pipefail
 SERVICE_NAME="ble-tty.service"
 INSTALL_DIR="/opt/ble-tty"
 VENV_DIR="${INSTALL_DIR}/venv"
-SRC_PY_REL="ble_uart_shell.py"     # путь к скрипту в репо (рядом с этим инсталлером)
+SRC_PY_REL="ble_tty.py"     # путь к скрипту в репо (рядом с этим инсталлером)
 SRC_PY_ABS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/${SRC_PY_REL}"
 UNIT_PATH="/etc/systemd/system/${SERVICE_NAME}"
 BT_OVERRIDE_DIR="/etc/systemd/system/bluetooth.service.d"
@@ -19,7 +19,7 @@ fi
 
 if [[ ! -f "${SRC_PY_ABS}" ]]; then
   echo "Не найден файл приложения: ${SRC_PY_ABS}"
-  echo "Убедись, что ble_uart_shell.py находится в репозитории рядом со скриптом."
+  echo "Убедись, что ble_tty.py находится в репозитории рядом со скриптом."
   exit 1
 fi
 
@@ -65,7 +65,7 @@ echo "[*] Установка/обновление python-зависимосте�
 
 # Копируем приложение, если изменилось (по хэшу)
 echo "[*] Обновление приложения..."
-dest_py="${INSTALL_DIR}/ble_uart_shell.py"
+dest_py="${INSTALL_DIR}/ble_tty.py"
 src_sum="$(sha256sum "${SRC_PY_ABS}" | awk '{print $1}')"
 dst_sum="$( [[ -f "${dest_py}" ]] && sha256sum "${dest_py}" | awk '{print $1}' || echo "NONE" )"
 if [[ "${src_sum}" != "${dst_sum}" ]]; then
