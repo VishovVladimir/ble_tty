@@ -1,0 +1,14 @@
+[Unit]
+Description=BLE UART (Nordic UART Service) to TTY shell bridge
+After=bluetooth.service
+Requires=bluetooth.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/env python3 /opt/ble-tty/ble_uart_shell.py
+Restart=on-failure
+User=root
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
