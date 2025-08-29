@@ -33,16 +33,35 @@ apt-get install -y --no-install-recommends \
   bluetooth bluez bluez-tools \
   python3 python3-venv python3-pip
 
-# ==== Включаем bluetoothd --experimental для GATT-периферии ====
+# ==== Включаем bluetoothd --experimental для GATT-периферии (с автоопределением пути) ====
 echo "[*] Включение bluetoothd --experimental..."
-mkdir -p "${BT_OVERRIDE_DIR}"
-BT_UNIT_CONTENT=$'[Service]\nExecStart=\nExecStart=/usr/lib/bluetooth/bluetoothd --experimental\n'
-if [[ ! -f "${BT_OVERRIDE_FILE}" ]] || ! diff -q <(echo -e "${BT_UNIT_CONTENT}") "${BT_OVERRIDE_FILE}" >/dev/null 2>&1; then
-  printf "%b" "${BT_UNIT_CONTENT}" > "${BT_OVERRIDE_FILE}"
-  systemctl daemon-reload
-  systemctl restart bluetooth.service
-  changed_flag=1
-  echo "  - Применён override для bluetooth.service"
+mkdir -p /etc/systemd/system/bluetooth.service.d
+
+BTD_BIN=""
+# приоритет: явные пути, потом command -v
+for p in /usr/libexec/bluetooth/bluetoothd /usr/lib/bluetooth/bluetoothd $(command -v bluetoothd 2>/dev/null); do
+  if [ -n "$p" ] && [ -x "$p" ]; then
+    BTD_BIN="$p"
+    break
+  fi
+done
+if [ -z "$BTD_BIN" ]; then
+  echo "[-] Не найден bluetoothd. Установи пакет bluez и повтори."
+  exit 1
+fi
+
+BT_UNIT_CONTENT=$"[Service]\nExecStart=\nExecStart=${BTD_BIN} --experimental\n"
+OVR="/etc/systemd/system/bluetooth.service.d/override.conf"
+if [[ ! -f "$OVR" ]] || ! diff -q <(echo -e "$BT_UNIT_CONTENT") "$OVR" >/dev/null 2>&1; then
+  printf "%b" "$BT_UNIT_CONTENT" | sudo tee "$OVR" >/dev/null
+  sudo systemctl daemon-reload
+  sudo systemctl restart bluetooth.service || {
+    echo "[-] Ошибка перезапуска bluetooth.service, смотри: journalctl -xeu bluetooth.service"
+    exit 1
+  }
+  echo "  - Применён override для bluetooth.service: $BTD_BIN --experimental"
+else
+  echo "  - override уже актуален"
 fi
 
 # ==== Развёртывание каталога приложения ====
